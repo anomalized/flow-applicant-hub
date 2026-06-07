@@ -72,6 +72,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!workspaceId) return;
+    const wsId: string = workspaceId;
     let cancelled = false;
 
     async function loadAll() {
