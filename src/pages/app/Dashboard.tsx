@@ -85,23 +85,23 @@ export default function Dashboard() {
         supabase
           .from("jobs")
           .select("id", { count: "exact", head: true })
-          .eq("workspace_id", workspaceId)
+          .eq("workspace_id", wsId)
           .eq("status", "open"),
         supabase
           .from("applications")
           .select("id", { count: "exact", head: true })
-          .eq("workspace_id", workspaceId)
+          .eq("workspace_id", wsId)
           .gte("created_at", monthStart),
         supabase
           .from("interviews")
           .select("id", { count: "exact", head: true })
-          .eq("workspace_id", workspaceId)
+          .eq("workspace_id", wsId)
           .gte("scheduled_at", weekStart)
           .lte("scheduled_at", weekEnd),
         supabase
           .from("offers")
           .select("id", { count: "exact", head: true })
-          .eq("workspace_id", workspaceId)
+          .eq("workspace_id", wsId)
           .eq("status", "pending"),
       ]);
 
@@ -117,7 +117,7 @@ export default function Dashboard() {
       const { data: jobRows } = await supabase
         .from("jobs")
         .select("id, title, department, due_date")
-        .eq("workspace_id", workspaceId)
+        .eq("workspace_id", wsId)
         .eq("status", "open")
         .order("created_at", { ascending: false })
         .limit(5);
@@ -138,7 +138,7 @@ export default function Dashboard() {
         .select(
           "id, scheduled_at, type, applications:application_id(jobs:job_id(title), candidates:candidate_id(full_name))",
         )
-        .eq("workspace_id", workspaceId)
+        .eq("workspace_id", wsId)
         .eq("status", "scheduled")
         .gte("scheduled_at", nowIso)
         .order("scheduled_at", { ascending: true })
@@ -170,7 +170,7 @@ export default function Dashboard() {
         .select(
           "id, salary, currency, expires_at, applications:application_id(jobs:job_id(title), candidates:candidate_id(full_name))",
         )
-        .eq("workspace_id", workspaceId)
+        .eq("workspace_id", wsId)
         .eq("status", "pending")
         .order("expires_at", { ascending: true, nullsFirst: false })
         .limit(5);
@@ -201,7 +201,7 @@ export default function Dashboard() {
       const { data: act } = await supabase
         .from("activity_log")
         .select("id, action, created_at")
-        .eq("workspace_id", workspaceId)
+        .eq("workspace_id", wsId)
         .order("created_at", { ascending: false })
         .limit(15);
       if (!cancelled) setActivity((act as ActivityRow[]) ?? []);
@@ -210,10 +210,10 @@ export default function Dashboard() {
     void loadAll();
 
     const channel = supabase
-      .channel(`activity-${workspaceId}`)
+      .channel(`activity-${wsId}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "activity_log", filter: `workspace_id=eq.${workspaceId}` },
+        { event: "INSERT", schema: "public", table: "activity_log", filter: `workspace_id=eq.${wsId}` },
         (payload) => {
           const row = payload.new as ActivityRow;
           setActivity((prev) => [row, ...(prev ?? [])].slice(0, 15));
