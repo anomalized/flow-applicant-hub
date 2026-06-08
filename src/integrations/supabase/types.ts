@@ -379,6 +379,26 @@ export type Database = {
     }
     Functions: {
       current_workspace_id: { Args: never; Returns: string }
+      get_public_theme_by_slug: {
+        Args: { _slug: string }
+        Returns: {
+          accent_color: string
+          bg_color: string
+          font_family: string
+          primary_color: string
+          surface_color: string
+          text_color: string
+        }[]
+      }
+      get_public_workspace_by_slug: {
+        Args: { _slug: string }
+        Returns: {
+          id: string
+          logo_url: string
+          name: string
+          slug: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
