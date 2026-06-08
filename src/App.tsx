@@ -32,6 +32,7 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
+        <Toaster />
         <Routes>
           <Route path="/" element={<Navigate to="/app/dashboard" replace />} />
 
