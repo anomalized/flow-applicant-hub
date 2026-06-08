@@ -400,6 +400,17 @@ export type Database = {
           slug: string
         }[]
       }
+      list_public_jobs_by_slug: {
+        Args: { _slug: string }
+        Returns: {
+          created_at: string
+          department: string
+          description: string
+          due_date: string
+          id: string
+          title: string
+        }[]
+      }
       seed_demo_data: { Args: never; Returns: Json }
     }
     Enums: {
