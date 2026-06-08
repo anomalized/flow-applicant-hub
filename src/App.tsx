@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import { AuthGuard } from "@/components/AuthGuard";
+import { Toaster } from "@/components/ui/sonner";
 
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
@@ -31,6 +32,7 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
+        <Toaster />
         <Routes>
           <Route path="/" element={<Navigate to="/app/dashboard" replace />} />
 
