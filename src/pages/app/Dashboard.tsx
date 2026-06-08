@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/AuthProvider";
+import { toast } from "sonner";
 
 type Kpis = { openRoles: number; applicants: number; interviews: number; offers: number };
 type JobRow = { id: string; title: string; department: string | null; due_date: string | null; app_count: number };
