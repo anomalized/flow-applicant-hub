@@ -400,6 +400,7 @@ export type Database = {
           slug: string
         }[]
       }
+      seed_demo_data: { Args: never; Returns: Json }
     }
     Enums: {
       [_ in never]: never

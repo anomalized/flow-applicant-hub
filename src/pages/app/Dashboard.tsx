@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/AuthProvider";
+import { toast } from "sonner";
 
 type Kpis = { openRoles: number; applicants: number; interviews: number; offers: number };
 type JobRow = { id: string; title: string; department: string | null; due_date: string | null; app_count: number };
@@ -227,8 +228,57 @@ export default function Dashboard() {
     };
   }, [workspaceId]);
 
+  const isEmpty =
+    kpis !== null &&
+    kpis.openRoles === 0 &&
+    kpis.applicants === 0 &&
+    kpis.interviews === 0 &&
+    kpis.offers === 0;
+  const [seeding, setSeeding] = useState(false);
+
+  async function seed() {
+    setSeeding(true);
+    const { error } = await supabase.rpc("seed_demo_data");
+    setSeeding(false);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Demo data seeded");
+      window.location.reload();
+    }
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      {isEmpty && (
+        <div
+          className="vf-card"
+          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}
+        >
+          <div>
+            <div style={{ fontWeight: 600, color: "var(--color-text)" }}>Your workspace is empty</div>
+            <div className="vf-muted-sm" style={{ marginTop: 4 }}>
+              Load a few sample jobs, candidates, and interviews to explore the product.
+            </div>
+          </div>
+          <button
+            onClick={seed}
+            disabled={seeding}
+            style={{
+              padding: "8px 14px",
+              borderRadius: 6,
+              backgroundColor: "var(--color-primary)",
+              color: "var(--color-bg)",
+              fontSize: 13,
+              fontWeight: 500,
+              border: "none",
+              cursor: seeding ? "wait" : "pointer",
+              opacity: seeding ? 0.7 : 1,
+            }}
+          >
+            {seeding ? "Seeding…" : "Load demo data"}
+          </button>
+        </div>
+      )}
       <KpiRow kpis={kpis} />
 
       <div className="vf-grid-2">
