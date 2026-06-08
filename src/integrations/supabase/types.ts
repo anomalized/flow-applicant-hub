@@ -378,6 +378,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      current_user_role: { Args: never; Returns: string }
       current_workspace_id: { Args: never; Returns: string }
       get_public_theme_by_slug: {
         Args: { _slug: string }
