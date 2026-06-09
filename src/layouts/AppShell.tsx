@@ -88,9 +88,9 @@ export default function AppShell() {
   const Sidebar = (
     <aside
       style={{
-        width: 240,
+        width: 248,
         backgroundColor: "var(--color-surface)",
-        borderRight: "1px solid color-mix(in oklab, var(--color-text) 8%, transparent)",
+        borderRight: "1px solid var(--color-border)",
         display: "flex",
         flexDirection: "column",
         height: "100vh",
@@ -100,7 +100,7 @@ export default function AppShell() {
         zIndex: 40,
       }}
     >
-      <div style={{ padding: 20, borderBottom: "1px solid color-mix(in oklab, var(--color-text) 8%, transparent)" }}>
+      <div style={{ padding: "18px 16px", borderBottom: "1px solid var(--color-border)" }}>
         <Link to="/app/dashboard" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none" }}>
           {workspace?.logo_url ? (
             <img
@@ -114,27 +114,29 @@ export default function AppShell() {
                 width: 36,
                 height: 36,
                 borderRadius: 8,
-                backgroundColor: "var(--color-primary)",
+                background: "linear-gradient(135deg, var(--color-primary), var(--color-accent))",
                 color: "#fff",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 fontWeight: 600,
                 fontSize: 13,
+                boxShadow: "0 4px 12px -4px color-mix(in oklab, var(--color-primary) 60%, transparent)",
               }}
             >
               {initials(workspace?.name || "VF")}
             </div>
           )}
           <div style={{ minWidth: 0 }}>
-            <div style={{ color: "var(--color-text)", fontWeight: 600, fontSize: 14, lineHeight: 1.2 }}>
+            <div style={{ color: "var(--color-text)", fontWeight: 600, fontSize: 14, lineHeight: 1.2, letterSpacing: "-0.01em" }}>
               {workspace?.name || "Workspace"}
             </div>
             <div
               style={{
-                color: "color-mix(in oklab, var(--color-text) 55%, transparent)",
+                color: "var(--color-muted)",
                 fontSize: 11,
-                marginTop: 2,
+                marginTop: 3,
+                fontWeight: 500,
               }}
             >
               Velocity &amp; Flow
@@ -143,28 +145,49 @@ export default function AppShell() {
         </Link>
       </div>
 
-      <nav style={{ flex: 1, padding: 12, display: "flex", flexDirection: "column", gap: 2 }}>
+      <nav style={{ flex: 1, padding: "12px 10px", display: "flex", flexDirection: "column", gap: 2 }}>
         {NAV.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
             end={item.to === "/app/dashboard"}
+            className="vf-nav-link"
             style={({ isActive }) => ({
               display: "flex",
               alignItems: "center",
-              gap: 10,
+              gap: 11,
               padding: "9px 12px",
-              borderRadius: 6,
+              paddingLeft: 14,
+              borderRadius: 8,
               textDecoration: "none",
-              fontSize: 14,
+              fontSize: 13.5,
               fontWeight: 500,
-              borderLeft: `2px solid ${isActive ? "var(--color-primary)" : "transparent"}`,
-              color: isActive ? "var(--color-primary)" : "color-mix(in oklab, var(--color-text) 70%, transparent)",
-              backgroundColor: isActive ? "color-mix(in oklab, var(--color-primary) 15%, transparent)" : "transparent",
+              position: "relative",
+              color: isActive ? "#ffffff" : "var(--color-muted)",
+              backgroundColor: isActive
+                ? "color-mix(in oklab, var(--color-primary) 14%, transparent)"
+                : "transparent",
             })}
           >
-            <item.icon size={16} />
-            <span>{item.label}</span>
+            {({ isActive }) => (
+              <>
+                {isActive && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      left: 0,
+                      top: 8,
+                      bottom: 8,
+                      width: 2,
+                      borderRadius: 2,
+                      backgroundColor: "var(--color-primary)",
+                    }}
+                  />
+                )}
+                <item.icon size={16} strokeWidth={isActive ? 2.25 : 2} />
+                <span>{item.label}</span>
+              </>
+            )}
           </NavLink>
         ))}
       </nav>
@@ -172,7 +195,7 @@ export default function AppShell() {
       <div
         style={{
           padding: 12,
-          borderTop: "1px solid color-mix(in oklab, var(--color-text) 8%, transparent)",
+          borderTop: "1px solid var(--color-border)",
           display: "flex",
           alignItems: "center",
           gap: 10,
@@ -183,8 +206,8 @@ export default function AppShell() {
             width: 32,
             height: 32,
             borderRadius: "50%",
-            backgroundColor: "color-mix(in oklab, var(--color-primary) 25%, transparent)",
-            color: "var(--color-text)",
+            background: "linear-gradient(135deg, var(--color-primary), var(--color-accent))",
+            color: "#fff",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -220,8 +243,9 @@ export default function AppShell() {
     </aside>
   );
 
-  const sidebarVisibleDesktop = `@media (max-width: 767px) { .vf-sidebar-desktop { display: none !important; } .vf-main { margin-left: 0 !important; } .vf-mobile-trigger { display: inline-flex !important; } }
-                                 @media (min-width: 768px) { .vf-mobile-trigger { display: none !important; } .vf-mobile-overlay { display: none !important; } }`;
+  const sidebarVisibleDesktop = `@media (max-width: 767px) { .vf-sidebar-desktop { display: none !important; } .vf-main { margin-left: 0 !important; } .vf-main-header { left: 0 !important; } .vf-mobile-trigger { display: inline-flex !important; } }
+                                 @media (min-width: 768px) { .vf-mobile-trigger { display: none !important; } .vf-mobile-overlay { display: none !important; } }
+                                 .vf-nav-link:hover { color: var(--color-text) !important; background-color: color-mix(in oklab, var(--color-text) 5%, transparent) !important; }`;
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "var(--color-bg)", fontFamily: "var(--font-base)", color: "var(--color-text)" }}>
