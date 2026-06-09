@@ -262,19 +262,21 @@ export default function AppShell() {
       )}
 
       <header
-        className="vf-main"
+        className="vf-main-header"
         style={{
           position: "fixed",
           top: 0,
-          left: 240,
+          left: 248,
           right: 0,
-          height: 56,
-          backgroundColor: "var(--color-bg)",
-          borderBottom: "1px solid color-mix(in oklab, var(--color-text) 8%, transparent)",
+          height: 60,
+          backgroundColor: "color-mix(in oklab, var(--color-bg) 85%, transparent)",
+          backdropFilter: "saturate(140%) blur(8px)",
+          WebkitBackdropFilter: "saturate(140%) blur(8px)",
+          borderBottom: "1px solid var(--color-border)",
           display: "flex",
           alignItems: "center",
           gap: 16,
-          padding: "0 20px",
+          padding: "0 24px",
           zIndex: 30,
         }}
       >
@@ -286,22 +288,27 @@ export default function AppShell() {
         >
           {mobileOpen ? <X size={18} /> : <Menu size={18} />}
         </button>
-        <h1 style={{ fontSize: 15, fontWeight: 600, color: "var(--color-text)" }}>
+        <h1 style={{ fontSize: 16, fontWeight: 600, color: "var(--color-text)", letterSpacing: "-0.01em", margin: 0 }}>
           {titleForPath(location.pathname)}
         </h1>
-        <div style={{ flex: 1, display: "flex", justifyContent: "center", maxWidth: 480, margin: "0 auto" }}>
-          <div style={{ position: "relative", width: "100%", maxWidth: 380 }}>
+        <div style={{ flex: 1, display: "flex", justifyContent: "flex-end" }}>
+          <div style={{ position: "relative", width: "100%", maxWidth: 360 }}>
             <Search
-              size={14}
+              size={15}
               style={{
                 position: "absolute",
                 left: 12,
                 top: "50%",
                 transform: "translateY(-50%)",
-                color: "color-mix(in oklab, var(--color-text) 50%, transparent)",
+                color: "var(--color-muted)",
+                pointerEvents: "none",
               }}
             />
-            <input className="vf-input" placeholder="Search..." style={{ paddingLeft: 32, height: 34 }} />
+            <input
+              className="vf-input"
+              placeholder="Search jobs, candidates, interviews…"
+              style={{ paddingLeft: 36, height: 36 }}
+            />
           </div>
         </div>
         <button className="vf-icon-btn" aria-label="Notifications">
@@ -311,9 +318,9 @@ export default function AppShell() {
 
       <main
         className="vf-main"
-        style={{ marginLeft: 240, paddingTop: 56, minHeight: "100vh", backgroundColor: "var(--color-bg)" }}
+        style={{ marginLeft: 248, paddingTop: 60, minHeight: "100vh", backgroundColor: "var(--color-bg)" }}
       >
-        <div style={{ padding: 24 }}>
+        <div style={{ padding: "28px 28px 40px" }}>
           <Outlet />
         </div>
       </main>
