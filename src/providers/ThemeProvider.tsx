@@ -53,7 +53,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       .eq("is_active", true)
       .limit(1)
       .maybeSingle();
-    inject((data as ThemeVars | null) ?? FALLBACK);
+    // Keep neutral dark surfaces; only allow brand color + font from DB.
+    const db = data as Partial<ThemeVars> | null;
+    inject({
+      ...FALLBACK,
+      primary_color: db?.primary_color || FALLBACK.primary_color,
+      accent_color: db?.accent_color || FALLBACK.accent_color,
+      font_family: db?.font_family || FALLBACK.font_family,
+    });
   }, []);
 
   useEffect(() => {
