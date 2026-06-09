@@ -13,9 +13,9 @@ type ThemeVars = {
 const FALLBACK: ThemeVars = {
   primary_color: "#6366f1",
   accent_color: "#8b5cf6",
-  bg_color: "#0f1117",
-  surface_color: "#1a1d27",
-  text_color: "#f1f5f9",
+  bg_color: "#09090b",
+  surface_color: "#18181b",
+  text_color: "#fafafa",
   font_family: "Inter",
 };
 
@@ -25,7 +25,11 @@ function inject(theme: ThemeVars) {
   root.style.setProperty("--color-accent", theme.accent_color);
   root.style.setProperty("--color-bg", theme.bg_color);
   root.style.setProperty("--color-surface", theme.surface_color);
+  root.style.setProperty("--color-surface-2", "#1f1f23");
   root.style.setProperty("--color-text", theme.text_color);
+  root.style.setProperty("--color-muted", "#a1a1aa");
+  root.style.setProperty("--color-border", "#27272a");
+  root.style.setProperty("--color-border-strong", "#3f3f46");
   root.style.setProperty("--font-base", theme.font_family);
   document.body.style.backgroundColor = theme.bg_color;
   document.body.style.color = theme.text_color;
@@ -49,7 +53,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       .eq("is_active", true)
       .limit(1)
       .maybeSingle();
-    inject((data as ThemeVars | null) ?? FALLBACK);
+    // Keep neutral dark surfaces; only allow brand color + font from DB.
+    const db = data as Partial<ThemeVars> | null;
+    inject({
+      ...FALLBACK,
+      primary_color: db?.primary_color || FALLBACK.primary_color,
+      accent_color: db?.accent_color || FALLBACK.accent_color,
+      font_family: db?.font_family || FALLBACK.font_family,
+    });
   }, []);
 
   useEffect(() => {

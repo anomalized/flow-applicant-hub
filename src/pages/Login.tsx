@@ -129,19 +129,21 @@ export function SharedStyles() {
     <style>{`
       .vf-input {
         width: 100%;
-        padding: 10px 12px;
-        border-radius: 6px;
-        background-color: color-mix(in oklab, var(--color-bg) 60%, var(--color-surface));
-        border: 1px solid color-mix(in oklab, var(--color-text) 20%, transparent);
+        padding: 9px 12px;
+        border-radius: 8px;
+        background-color: color-mix(in oklab, var(--color-surface) 70%, var(--color-bg));
+        border: 1px solid var(--color-border);
         color: var(--color-text);
         font-family: var(--font-base);
-        font-size: 14px;
+        font-size: 13.5px;
         outline: none;
-        transition: border-color .15s, box-shadow .15s;
+        transition: border-color .15s, box-shadow .15s, background-color .15s;
       }
+      .vf-input::placeholder { color: var(--color-muted); }
+      .vf-input:hover { border-color: var(--color-border-strong); }
       .vf-input:focus {
         border-color: var(--color-primary);
-        box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-primary) 30%, transparent);
+        box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-primary) 25%, transparent);
       }
       .vf-btn-primary {
         padding: 10px 14px;
