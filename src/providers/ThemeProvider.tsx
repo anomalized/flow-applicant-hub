@@ -19,8 +19,27 @@ const FALLBACK: ThemeVars = {
   font_family: "Inter",
 };
 
+const FONT_URLS: Record<string, string> = {
+  Inter: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
+  Manrope: "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap",
+  "DM Sans": "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap",
+  Geist: "https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap",
+  "IBM Plex Sans": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap",
+};
+
+function loadFont(family: string) {
+  const href = FONT_URLS[family];
+  if (!href || typeof document === "undefined") return;
+  if (document.head.querySelector(`link[href="${href}"]`)) return;
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = href;
+  document.head.appendChild(link);
+}
+
 function inject(theme: ThemeVars) {
   const root = document.documentElement;
+  loadFont(theme.font_family);
   root.style.setProperty("--color-primary", theme.primary_color);
   root.style.setProperty("--color-accent", theme.accent_color);
   root.style.setProperty("--color-bg", theme.bg_color);
