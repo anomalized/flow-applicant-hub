@@ -179,20 +179,75 @@ export default function Candidates() {
             Drag candidates between stages to update their status.
           </div>
         </div>
-        <div style={{ minWidth: 240 }}>
-          <Label style={{ fontSize: 12, color: "color-mix(in oklab, var(--color-text) 60%, transparent)", marginBottom: 4, display: "block" }}>
-            Filter by job
-          </Label>
-          <Select value={jobFilter} onValueChange={setJobFilter}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All open jobs</SelectItem>
-              {jobs.map((j) => (
-                <SelectItem key={j.id} value={j.id}>{j.title}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 12 }}>
+          <div style={{ minWidth: 240 }}>
+            <Label style={{ fontSize: 12, color: "color-mix(in oklab, var(--color-text) 60%, transparent)", marginBottom: 4, display: "block" }}>
+              Filter by job
+            </Label>
+            <Select value={jobFilter} onValueChange={setJobFilter}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All open jobs</SelectItem>
+                {jobs.map((j) => (
+                  <SelectItem key={j.id} value={j.id}>{j.title}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
+            <DialogTrigger asChild>
+              <Button disabled={jobs.length === 0} title={jobs.length === 0 ? "Create a job first" : undefined}>
+                Add Candidate
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add Candidate</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleCreate} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <div>
+                  <Label htmlFor="cand-name">Full name</Label>
+                  <Input id="cand-name" value={fullName} onChange={(e) => setFullName(e.target.value)} maxLength={120} required />
+                </div>
+                <div>
+                  <Label htmlFor="cand-email">Email</Label>
+                  <Input id="cand-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={255} />
+                </div>
+                <div>
+                  <Label htmlFor="cand-phone">Phone</Label>
+                  <Input id="cand-phone" value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={40} />
+                </div>
+                <div>
+                  <Label>Job</Label>
+                  <Select value={newJobId} onValueChange={setNewJobId}>
+                    <SelectTrigger><SelectValue placeholder="Select a job" /></SelectTrigger>
+                    <SelectContent>
+                      {jobs.map((j) => (
+                        <SelectItem key={j.id} value={j.id}>{j.title}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Stage</Label>
+                  <Select value={newStage} onValueChange={(v) => setNewStage(v as Stage)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {STAGES.map((s) => (
+                        <SelectItem key={s} value={s}>{STAGE_LABEL[s]}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+                  <Button type="submit" disabled={submitting}>{submitting ? "Adding..." : "Add Candidate"}</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
+
       </div>
 
       <div
