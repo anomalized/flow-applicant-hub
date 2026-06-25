@@ -51,6 +51,69 @@ export default function Candidates() {
   const [apps, setApps] = useState<AppRow[] | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
   const [overStage, setOverStage] = useState<Stage | null>(null);
+  const [open, setOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [newJobId, setNewJobId] = useState<string>("");
+  const [newStage, setNewStage] = useState<Stage>("applied");
+
+  const candidateSchema = z.object({
+    full_name: z.string().trim().min(1, "Name is required").max(120),
+    email: z.string().trim().email("Invalid email").max(255).optional().or(z.literal("")),
+    phone: z.string().trim().max(40).optional().or(z.literal("")),
+    job_id: z.string().uuid("Select a job"),
+    stage: z.enum(STAGES),
+  });
+
+  function resetForm() {
+    setFullName(""); setEmail(""); setPhone(""); setNewJobId(""); setNewStage("applied");
+  }
+
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault();
+    if (!workspaceId) return;
+    const parsed = candidateSchema.safeParse({
+      full_name: fullName, email, phone, job_id: newJobId, stage: newStage,
+    });
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message ?? "Invalid input");
+      return;
+    }
+    setSubmitting(true);
+    const { data: cand, error: candErr } = await supabase
+      .from("candidates")
+      .insert({
+        workspace_id: workspaceId,
+        full_name: parsed.data.full_name,
+        email: parsed.data.email || null,
+        phone: parsed.data.phone || null,
+      })
+      .select("id")
+      .single();
+    if (candErr || !cand) {
+      setSubmitting(false);
+      toast.error(candErr?.message ?? "Could not create candidate");
+      return;
+    }
+    const { error: appErr } = await supabase.from("applications").insert({
+      workspace_id: workspaceId,
+      candidate_id: cand.id,
+      job_id: parsed.data.job_id,
+      stage: parsed.data.stage,
+    });
+    setSubmitting(false);
+    if (appErr) {
+      toast.error(appErr.message);
+      return;
+    }
+    toast.success("Candidate added");
+    setOpen(false);
+    resetForm();
+    void load();
+  }
+
 
   async function load() {
     if (!workspaceId) return;
