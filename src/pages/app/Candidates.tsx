@@ -9,7 +9,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { z } from "zod";
+
 
 type Job = { id: string; title: string };
 type AppRow = {
@@ -39,6 +51,69 @@ export default function Candidates() {
   const [apps, setApps] = useState<AppRow[] | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
   const [overStage, setOverStage] = useState<Stage | null>(null);
+  const [open, setOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [newJobId, setNewJobId] = useState<string>("");
+  const [newStage, setNewStage] = useState<Stage>("applied");
+
+  const candidateSchema = z.object({
+    full_name: z.string().trim().min(1, "Name is required").max(120),
+    email: z.string().trim().email("Invalid email").max(255).optional().or(z.literal("")),
+    phone: z.string().trim().max(40).optional().or(z.literal("")),
+    job_id: z.string().uuid("Select a job"),
+    stage: z.enum(STAGES),
+  });
+
+  function resetForm() {
+    setFullName(""); setEmail(""); setPhone(""); setNewJobId(""); setNewStage("applied");
+  }
+
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault();
+    if (!workspaceId) return;
+    const parsed = candidateSchema.safeParse({
+      full_name: fullName, email, phone, job_id: newJobId, stage: newStage,
+    });
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message ?? "Invalid input");
+      return;
+    }
+    setSubmitting(true);
+    const { data: cand, error: candErr } = await supabase
+      .from("candidates")
+      .insert({
+        workspace_id: workspaceId,
+        full_name: parsed.data.full_name,
+        email: parsed.data.email || null,
+        phone: parsed.data.phone || null,
+      })
+      .select("id")
+      .single();
+    if (candErr || !cand) {
+      setSubmitting(false);
+      toast.error(candErr?.message ?? "Could not create candidate");
+      return;
+    }
+    const { error: appErr } = await supabase.from("applications").insert({
+      workspace_id: workspaceId,
+      candidate_id: cand.id,
+      job_id: parsed.data.job_id,
+      stage: parsed.data.stage,
+    });
+    setSubmitting(false);
+    if (appErr) {
+      toast.error(appErr.message);
+      return;
+    }
+    toast.success("Candidate added");
+    setOpen(false);
+    resetForm();
+    void load();
+  }
+
 
   async function load() {
     if (!workspaceId) return;
@@ -104,20 +179,75 @@ export default function Candidates() {
             Drag candidates between stages to update their status.
           </div>
         </div>
-        <div style={{ minWidth: 240 }}>
-          <Label style={{ fontSize: 12, color: "color-mix(in oklab, var(--color-text) 60%, transparent)", marginBottom: 4, display: "block" }}>
-            Filter by job
-          </Label>
-          <Select value={jobFilter} onValueChange={setJobFilter}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All open jobs</SelectItem>
-              {jobs.map((j) => (
-                <SelectItem key={j.id} value={j.id}>{j.title}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 12 }}>
+          <div style={{ minWidth: 240 }}>
+            <Label style={{ fontSize: 12, color: "color-mix(in oklab, var(--color-text) 60%, transparent)", marginBottom: 4, display: "block" }}>
+              Filter by job
+            </Label>
+            <Select value={jobFilter} onValueChange={setJobFilter}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All open jobs</SelectItem>
+                {jobs.map((j) => (
+                  <SelectItem key={j.id} value={j.id}>{j.title}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
+            <DialogTrigger asChild>
+              <Button disabled={jobs.length === 0} title={jobs.length === 0 ? "Create a job first" : undefined}>
+                Add Candidate
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add Candidate</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleCreate} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <div>
+                  <Label htmlFor="cand-name">Full name</Label>
+                  <Input id="cand-name" value={fullName} onChange={(e) => setFullName(e.target.value)} maxLength={120} required />
+                </div>
+                <div>
+                  <Label htmlFor="cand-email">Email</Label>
+                  <Input id="cand-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={255} />
+                </div>
+                <div>
+                  <Label htmlFor="cand-phone">Phone</Label>
+                  <Input id="cand-phone" value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={40} />
+                </div>
+                <div>
+                  <Label>Job</Label>
+                  <Select value={newJobId} onValueChange={setNewJobId}>
+                    <SelectTrigger><SelectValue placeholder="Select a job" /></SelectTrigger>
+                    <SelectContent>
+                      {jobs.map((j) => (
+                        <SelectItem key={j.id} value={j.id}>{j.title}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Stage</Label>
+                  <Select value={newStage} onValueChange={(v) => setNewStage(v as Stage)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {STAGES.map((s) => (
+                        <SelectItem key={s} value={s}>{STAGE_LABEL[s]}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+                  <Button type="submit" disabled={submitting}>{submitting ? "Adding..." : "Add Candidate"}</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
+
       </div>
 
       <div
