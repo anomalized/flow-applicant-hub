@@ -187,6 +187,56 @@ export default function Candidates() {
     }
   }
 
+  function openEdit(a: AppRow) {
+    setEditing(a);
+    setEditName(a.candidates?.full_name ?? "");
+    setEditEmail(a.candidates?.email ?? "");
+    setEditPhone("");
+  }
+
+  async function saveEdit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editing) return;
+    const parsed = z.object({
+      full_name: z.string().trim().min(1, "Name is required").max(120),
+      email: z.string().trim().email("Invalid email").max(255).optional().or(z.literal("")),
+      phone: z.string().trim().max(40).optional().or(z.literal("")),
+    }).safeParse({ full_name: editName, email: editEmail, phone: editPhone });
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message ?? "Invalid input");
+      return;
+    }
+    setEditSaving(true);
+    const { error } = await supabase
+      .from("candidates")
+      .update({
+        full_name: parsed.data.full_name,
+        email: parsed.data.email || null,
+        phone: parsed.data.phone || null,
+      })
+      .eq("id", editing.candidate_id);
+    setEditSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Candidate updated");
+    setEditing(null);
+    void load();
+  }
+
+  async function confirmDelete() {
+    if (!deleting) return;
+    const app = deleting;
+    setDeleting(null);
+    setApps((prev) => (prev ?? []).filter((a) => a.id !== app.id));
+    // Delete candidate (cascades to applications/interviews/offers via FK)
+    const { error } = await supabase.from("candidates").delete().eq("id", app.candidate_id);
+    if (error) {
+      toast.error(error.message);
+      void load();
+      return;
+    }
+    toast.success("Candidate removed");
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 12, flexWrap: "wrap" }}>
