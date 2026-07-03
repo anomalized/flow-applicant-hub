@@ -227,14 +227,13 @@ export default function Candidates() {
     const app = deleting;
     setDeleting(null);
     setApps((prev) => (prev ?? []).filter((a) => a.id !== app.id));
-    // Delete candidate (cascades to applications/interviews/offers via FK)
-    const { error } = await supabase.from("candidates").delete().eq("id", app.candidate_id);
+    const { error } = await supabase.from("applications").delete().eq("id", app.id);
     if (error) {
       toast.error(error.message);
       void load();
       return;
     }
-    toast.success("Candidate removed");
+    toast.success("Removed from pipeline");
   }
 
   return (
