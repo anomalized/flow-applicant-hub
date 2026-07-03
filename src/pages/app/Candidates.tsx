@@ -432,6 +432,49 @@ export default function Candidates() {
           );
         })}
       </div>
+
+      <Dialog open={!!editing} onOpenChange={(v) => !v && setEditing(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Candidate</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={saveEdit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div>
+              <Label htmlFor="edit-name">Full name</Label>
+              <Input id="edit-name" value={editName} onChange={(e) => setEditName(e.target.value)} maxLength={120} required />
+            </div>
+            <div>
+              <Label htmlFor="edit-email">Email</Label>
+              <Input id="edit-email" type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} maxLength={255} />
+            </div>
+            <div>
+              <Label htmlFor="edit-phone">Phone</Label>
+              <Input id="edit-phone" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} maxLength={40} placeholder="Leave blank to keep existing" />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
+              <Button type="submit" disabled={editSaving}>{editSaving ? "Saving..." : "Save Changes"}</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!deleting} onOpenChange={(v) => !v && setDeleting(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove from pipeline?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This removes <strong>{deleting?.candidates?.full_name}</strong> from
+              {deleting?.jobs?.title ? <> <strong>{deleting.jobs.title}</strong></> : " this job"}.
+              The candidate record is kept and can be added again later.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete}>Remove</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
