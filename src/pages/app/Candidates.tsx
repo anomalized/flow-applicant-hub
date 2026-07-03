@@ -207,13 +207,14 @@ export default function Candidates() {
       return;
     }
     setEditSaving(true);
+    const update: Record<string, string | null> = {
+      full_name: parsed.data.full_name,
+      email: parsed.data.email || null,
+    };
+    if (parsed.data.phone) update.phone = parsed.data.phone;
     const { error } = await supabase
       .from("candidates")
-      .update({
-        full_name: parsed.data.full_name,
-        email: parsed.data.email || null,
-        phone: parsed.data.phone || null,
-      })
+      .update(update)
       .eq("id", editing.candidate_id);
     setEditSaving(false);
     if (error) { toast.error(error.message); return; }
