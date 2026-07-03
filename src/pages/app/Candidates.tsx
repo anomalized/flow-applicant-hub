@@ -416,6 +416,14 @@ export default function Candidates() {
                           </SelectContent>
                         </Select>
                       </div>
+                      <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                        <Button size="sm" variant="outline" style={{ height: 24, fontSize: 11, flex: 1 }} onClick={() => openEdit(a)}>
+                          Edit
+                        </Button>
+                        <Button size="sm" variant="destructive" style={{ height: 24, fontSize: 11, flex: 1 }} onClick={() => setDeleting(a)}>
+                          Remove
+                        </Button>
+                      </div>
                     </div>
                   ))
                 )}
