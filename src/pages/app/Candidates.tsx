@@ -69,6 +69,13 @@ export default function Candidates() {
   const [newJobId, setNewJobId] = useState<string>("");
   const [newStage, setNewStage] = useState<Stage>("applied");
 
+  const [editing, setEditing] = useState<AppRow | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
+  const [deleting, setDeleting] = useState<AppRow | null>(null);
+
   const candidateSchema = z.object({
     full_name: z.string().trim().min(1, "Name is required").max(120),
     email: z.string().trim().email("Invalid email").max(255).optional().or(z.literal("")),
