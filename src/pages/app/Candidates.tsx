@@ -19,6 +19,16 @@ import {
   DialogFooter,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -58,6 +68,13 @@ export default function Candidates() {
   const [phone, setPhone] = useState("");
   const [newJobId, setNewJobId] = useState<string>("");
   const [newStage, setNewStage] = useState<Stage>("applied");
+
+  const [editing, setEditing] = useState<AppRow | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
+  const [deleting, setDeleting] = useState<AppRow | null>(null);
 
   const candidateSchema = z.object({
     full_name: z.string().trim().min(1, "Name is required").max(120),
@@ -168,6 +185,56 @@ export default function Candidates() {
         (prev ?? []).map((a) => (a.id === appId ? { ...a, stage: current.stage } : a)),
       );
     }
+  }
+
+  function openEdit(a: AppRow) {
+    setEditing(a);
+    setEditName(a.candidates?.full_name ?? "");
+    setEditEmail(a.candidates?.email ?? "");
+    setEditPhone("");
+  }
+
+  async function saveEdit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editing) return;
+    const parsed = z.object({
+      full_name: z.string().trim().min(1, "Name is required").max(120),
+      email: z.string().trim().email("Invalid email").max(255).optional().or(z.literal("")),
+      phone: z.string().trim().max(40).optional().or(z.literal("")),
+    }).safeParse({ full_name: editName, email: editEmail, phone: editPhone });
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message ?? "Invalid input");
+      return;
+    }
+    setEditSaving(true);
+    const update: { full_name: string; email: string | null; phone?: string } = {
+      full_name: parsed.data.full_name,
+      email: parsed.data.email || null,
+    };
+    if (parsed.data.phone) update.phone = parsed.data.phone;
+    const { error } = await supabase
+      .from("candidates")
+      .update(update)
+      .eq("id", editing.candidate_id);
+    setEditSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Candidate updated");
+    setEditing(null);
+    void load();
+  }
+
+  async function confirmDelete() {
+    if (!deleting) return;
+    const app = deleting;
+    setDeleting(null);
+    setApps((prev) => (prev ?? []).filter((a) => a.id !== app.id));
+    const { error } = await supabase.from("applications").delete().eq("id", app.id);
+    if (error) {
+      toast.error(error.message);
+      void load();
+      return;
+    }
+    toast.success("Removed from pipeline");
   }
 
   return (
@@ -350,6 +417,14 @@ export default function Candidates() {
                           </SelectContent>
                         </Select>
                       </div>
+                      <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                        <Button size="sm" variant="outline" style={{ height: 24, fontSize: 11, flex: 1 }} onClick={() => openEdit(a)}>
+                          Edit
+                        </Button>
+                        <Button size="sm" variant="destructive" style={{ height: 24, fontSize: 11, flex: 1 }} onClick={() => setDeleting(a)}>
+                          Remove
+                        </Button>
+                      </div>
                     </div>
                   ))
                 )}
@@ -358,6 +433,49 @@ export default function Candidates() {
           );
         })}
       </div>
+
+      <Dialog open={!!editing} onOpenChange={(v) => !v && setEditing(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Candidate</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={saveEdit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div>
+              <Label htmlFor="edit-name">Full name</Label>
+              <Input id="edit-name" value={editName} onChange={(e) => setEditName(e.target.value)} maxLength={120} required />
+            </div>
+            <div>
+              <Label htmlFor="edit-email">Email</Label>
+              <Input id="edit-email" type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} maxLength={255} />
+            </div>
+            <div>
+              <Label htmlFor="edit-phone">Phone</Label>
+              <Input id="edit-phone" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} maxLength={40} placeholder="Leave blank to keep existing" />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
+              <Button type="submit" disabled={editSaving}>{editSaving ? "Saving..." : "Save Changes"}</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!deleting} onOpenChange={(v) => !v && setDeleting(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove from pipeline?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This removes <strong>{deleting?.candidates?.full_name}</strong> from
+              {deleting?.jobs?.title ? <> <strong>{deleting.jobs.title}</strong></> : " this job"}.
+              The candidate record is kept and can be added again later.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete}>Remove</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

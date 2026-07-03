@@ -16,6 +16,16 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -23,6 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { z } from "zod";
 
 type Job = {
   id: string;
@@ -30,24 +41,35 @@ type Job = {
   department: string | null;
   status: string;
   due_date: string | null;
+  description?: string | null;
   created_at: string;
 };
 
 const STATUS_OPTIONS = ["all", "open", "paused", "closed"] as const;
+
+const jobSchema = z.object({
+  title: z.string().trim().min(1, "Title is required").max(160),
+  department: z.string().trim().max(80).optional().or(z.literal("")),
+  status: z.enum(["open", "paused", "closed"]),
+  due_date: z.string().max(20).optional().or(z.literal("")),
+  description: z.string().trim().max(5000).optional().or(z.literal("")),
+});
 
 export default function Jobs() {
   const { workspaceId } = useAuth();
   const [jobs, setJobs] = useState<Job[] | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [departmentFilter, setDepartmentFilter] = useState<string>("all");
-  const [open, setOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editing, setEditing] = useState<Job | null>(null);
+  const [deleting, setDeleting] = useState<Job | null>(null);
   const [counts, setCounts] = useState<Record<string, number>>({});
 
   async function load() {
     if (!workspaceId) return;
     const { data } = await supabase
       .from("jobs")
-      .select("id, title, department, status, due_date, created_at")
+      .select("id, title, department, status, due_date, description, created_at")
       .eq("workspace_id", workspaceId)
       .order("created_at", { ascending: false });
     const rows = (data as Job[]) ?? [];
@@ -88,6 +110,21 @@ export default function Jobs() {
     });
   }, [jobs, statusFilter, departmentFilter]);
 
+  async function confirmDelete() {
+    if (!deleting) return;
+    const job = deleting;
+    setDeleting(null);
+    // optimistic
+    setJobs((prev) => (prev ?? []).filter((j) => j.id !== job.id));
+    const { error } = await supabase.from("jobs").delete().eq("id", job.id);
+    if (error) {
+      toast.error(error.message);
+      void load();
+      return;
+    }
+    toast.success("Job deleted");
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
@@ -97,7 +134,7 @@ export default function Jobs() {
             {jobs ? `${jobs.length} total` : "Loading..."}
           </div>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
             <Button
               style={{
@@ -108,10 +145,11 @@ export default function Jobs() {
               Create New Job
             </Button>
           </DialogTrigger>
-          <CreateJobDialog
+          <JobFormDialog
+            mode="create"
             workspaceId={workspaceId}
-            onCreated={() => {
-              setOpen(false);
+            onDone={() => {
+              setCreateOpen(false);
               void load();
             }}
           />
@@ -167,7 +205,7 @@ export default function Jobs() {
                 <th style={thStyle}>Status</th>
                 <th style={thStyle}>Applicants</th>
                 <th style={thStyle}>Due date</th>
-                <th style={thStyle}></th>
+                <th style={{ ...thStyle, textAlign: "right" }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -194,13 +232,11 @@ export default function Jobs() {
                   </td>
                   <td style={tdStyle}>{counts[j.id] ?? 0}</td>
                   <td style={tdStyle}>{j.due_date ? new Date(j.due_date).toLocaleDateString() : "—"}</td>
-                  <td style={tdStyle}>
-                    <Link
-                      to={`/app/jobs/${j.id}/pipeline`}
-                      style={{ fontSize: 13, color: "color-mix(in oklab, var(--color-text) 70%, transparent)" }}
-                    >
-                      View →
-                    </Link>
+                  <td style={{ ...tdStyle, textAlign: "right" }}>
+                    <div style={{ display: "inline-flex", gap: 6 }}>
+                      <Button size="sm" variant="outline" onClick={() => setEditing(j)}>Edit</Button>
+                      <Button size="sm" variant="destructive" onClick={() => setDeleting(j)}>Delete</Button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -208,6 +244,36 @@ export default function Jobs() {
           </table>
         )}
       </div>
+
+      <Dialog open={!!editing} onOpenChange={(v) => !v && setEditing(null)}>
+        {editing && (
+          <JobFormDialog
+            mode="edit"
+            workspaceId={workspaceId}
+            initial={editing}
+            onDone={() => {
+              setEditing(null);
+              void load();
+            }}
+          />
+        )}
+      </Dialog>
+
+      <AlertDialog open={!!deleting} onOpenChange={(v) => !v && setDeleting(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this job?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently deletes <strong>{deleting?.title}</strong> along with its applications,
+              interviews and offers. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -223,62 +289,71 @@ const thStyle: React.CSSProperties = {
 const tdStyle: React.CSSProperties = { padding: "12px 16px" };
 const labelStyle: React.CSSProperties = { fontSize: 12, color: "color-mix(in oklab, var(--color-text) 60%, transparent)", marginBottom: 4, display: "block" };
 
-function CreateJobDialog({
+function JobFormDialog({
+  mode,
   workspaceId,
-  onCreated,
+  initial,
+  onDone,
 }: {
+  mode: "create" | "edit";
   workspaceId: string | null;
-  onCreated: () => void;
+  initial?: Job;
+  onDone: () => void;
 }) {
-  const [title, setTitle] = useState("");
-  const [department, setDepartment] = useState("");
-  const [status, setStatus] = useState("open");
-  const [dueDate, setDueDate] = useState("");
-  const [description, setDescription] = useState("");
+  const [title, setTitle] = useState(initial?.title ?? "");
+  const [department, setDepartment] = useState(initial?.department ?? "");
+  const [status, setStatus] = useState(initial?.status ?? "open");
+  const [dueDate, setDueDate] = useState(initial?.due_date ?? "");
+  const [description, setDescription] = useState(initial?.description ?? "");
   const [saving, setSaving] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!workspaceId) return;
-    if (!title.trim()) {
-      toast.error("Title is required");
+    const parsed = jobSchema.safeParse({ title, department, status, due_date: dueDate, description });
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message ?? "Invalid input");
       return;
     }
     setSaving(true);
-    const { error } = await supabase.from("jobs").insert({
-      workspace_id: workspaceId,
-      title: title.trim(),
-      department: department.trim() || null,
-      status,
-      due_date: dueDate || null,
-      description: description.trim() || null,
-    });
+    const payload = {
+      title: parsed.data.title,
+      department: parsed.data.department || null,
+      status: parsed.data.status,
+      due_date: parsed.data.due_date || null,
+      description: parsed.data.description || null,
+    };
+    const { error } =
+      mode === "create"
+        ? await supabase.from("jobs").insert({ ...payload, workspace_id: workspaceId })
+        : await supabase.from("jobs").update(payload).eq("id", initial!.id);
     setSaving(false);
     if (error) {
       toast.error(error.message);
       return;
     }
-    toast.success("Job created");
-    setTitle(""); setDepartment(""); setStatus("open"); setDueDate(""); setDescription("");
-    onCreated();
+    toast.success(mode === "create" ? "Job created" : "Job updated");
+    onDone();
   }
 
   return (
     <DialogContent>
       <form onSubmit={submit}>
         <DialogHeader>
-          <DialogTitle>Create New Job</DialogTitle>
-          <DialogDescription>Add a new position to your workspace.</DialogDescription>
+          <DialogTitle>{mode === "create" ? "Create New Job" : "Edit Job"}</DialogTitle>
+          <DialogDescription>
+            {mode === "create" ? "Add a new position to your workspace." : "Update this job's details."}
+          </DialogDescription>
         </DialogHeader>
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 16 }}>
           <div>
             <Label htmlFor="title">Title</Label>
-            <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} required />
+            <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={160} required />
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
               <Label htmlFor="department">Department</Label>
-              <Input id="department" value={department} onChange={(e) => setDepartment(e.target.value)} />
+              <Input id="department" value={department ?? ""} onChange={(e) => setDepartment(e.target.value)} maxLength={80} />
             </div>
             <div>
               <Label htmlFor="status">Status</Label>
@@ -294,11 +369,11 @@ function CreateJobDialog({
           </div>
           <div>
             <Label htmlFor="due">Due date</Label>
-            <Input id="due" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+            <Input id="due" type="date" value={dueDate ?? ""} onChange={(e) => setDueDate(e.target.value)} />
           </div>
           <div>
             <Label htmlFor="desc">Description</Label>
-            <Textarea id="desc" value={description} onChange={(e) => setDescription(e.target.value)} rows={4} />
+            <Textarea id="desc" value={description ?? ""} onChange={(e) => setDescription(e.target.value)} rows={4} maxLength={5000} />
           </div>
         </div>
         <DialogFooter style={{ marginTop: 20 }}>
@@ -307,7 +382,7 @@ function CreateJobDialog({
             disabled={saving}
             style={{ backgroundColor: "var(--color-primary)", color: "var(--color-surface)" }}
           >
-            {saving ? "Creating..." : "Create Job"}
+            {saving ? "Saving..." : mode === "create" ? "Create Job" : "Save Changes"}
           </Button>
         </DialogFooter>
       </form>
