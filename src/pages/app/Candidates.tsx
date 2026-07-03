@@ -207,7 +207,7 @@ export default function Candidates() {
       return;
     }
     setEditSaving(true);
-    const update: Record<string, string | null> = {
+    const update: { full_name: string; email: string | null; phone?: string } = {
       full_name: parsed.data.full_name,
       email: parsed.data.email || null,
     };
